@@ -116,7 +116,7 @@ end
 
 -- refresh
 function body:refresh()
-  if self.shadowType == 'polygon' and self:has_changed() then
+  if self.shadowType == 'polygon' or self:has_changed() then
     self.data = {unpack(self.unit_data)}
     local center = vector(self.x, self.y)
     for i = 1, #self.data, 2 do
@@ -350,14 +350,14 @@ function body:setPoints(...)
     self.unit_data[i], self.unit_data[i+1] = self.unit_data[i] - self.width * 0.5, self.unit_data[i+1] - self.height * 0.5
   end
 
-  if not self.img then
+  --if not self.img then
     self.img = love.graphics.newImage(poly_canvas:newImageData())
     self.imgWidth = self.img:getWidth()
     self.imgHeight = self.img:getHeight()
     self.ix = self.imgWidth * 0.5
     self.iy = self.imgHeight * 0.5
     self:generateNormalMapFlat("top")
-  end
+  --end
   --wrapping with polygon normals causes edges to show
   --also we do not need wrapping for this default normal map
   self.normal:setWrap("clamp", "clamp")

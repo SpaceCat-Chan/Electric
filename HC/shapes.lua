@@ -401,6 +401,14 @@ function PointShape:scale()
 end
 
 
+function ConvexPolygonShape:unpack()
+	return self._polygon:unpack()
+end
+
+function ConcavePolygonShape:unpack()
+	return self._polygon:unpack()
+end
+
 function ConvexPolygonShape:draw(mode)
 	mode = mode or 'line'
 	love.graphics.polygon(mode, self._polygon:unpack())

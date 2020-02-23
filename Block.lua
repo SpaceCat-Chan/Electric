@@ -5,7 +5,6 @@ end
 Block = Class{}
 
 function Block:init(x, y, w, h)
-	print(RectToPoly(x, y, w, h))
 	self.InternalShape = HC.register(Shape.newPolygonShape(RectToPoly(x, y, w, h)))
 	self.ShadowBody = LightWorld:newPolygon(RectToPoly(x, y, w, h))
 end

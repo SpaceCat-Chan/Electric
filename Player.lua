@@ -71,6 +71,32 @@ function Player:update(dt)
 		self.ApplyGravity = true
 	end
 
+	if self.ApplyGravity == false then
+		local NearbyObjects = HC.neighbors(self)
+		for Object,_ in pairs(NearbyObjects) do
+			local FoundObject
+
+			for _, SearchObject in pairs(MovingWorld) do
+				local SearchX, SearchY = SearchObject.Item:center()
+				local ObjectX, ObjectY = Object:center()
+				if SearchX == ObjectX and SearchY == ObjectY then
+					FoundObject = SearchObject.Item
+					break
+				end
+			end
+			if FoundObject ~= nil then
+				if FoundObject.Velocity then
+					local _, ObjectY, _, _ = FoundObject:bbox()
+					local _, _, _, MyYandH = self:bbox()
+					if ObjectY == MyYandH then
+						self.InternalShape:move(FoundObject.Velocity.x*dt, FoundObject.Velocity.y*dt)
+						self.ShadowBody:move(FoundObject.Velocity.x*dt, FoundObject.Velocity.y*dt)
+					end
+				end
+			end
+		end
+	end
+
 	self.InternalShape:move(self.Velocity.x*dt, self.Velocity.y*dt)
 	self.ShadowBody:move(self.Velocity.x*dt, self.Velocity.y*dt)
 end

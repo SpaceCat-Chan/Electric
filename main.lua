@@ -5,6 +5,7 @@ Class = require("hump.class")
 Light = require("Light")
 denver = require("denver")
 ripple = require("ripple")
+flux = require("flux")
 
 require("Block")
 require("Player")
@@ -50,7 +51,7 @@ function love.load()
 		ambient = {0, 11, 28},
 		refractionStrength = 32,
 		reflectionVisibility = 0.75,
-		shadowBlur = 0.0
+		--shadowBlur = 0.0
 	})
 
 	local Wave50 = denver.get({waveform='square', frequency=50})
@@ -84,7 +85,7 @@ function love.load()
 	Add(Block(1600, -85, 1000, 225))
 	Rotate(-math.pi/16)
 
-	Add(Block(2800, -100, 750, 200))
+	Add(Block(2800, -100, 750, 193))
 	Rotate(math.pi/32 + math.pi/64)
 	LightWorld:newLight(2700, 10, 255, 255, 255, 500)
 
@@ -104,6 +105,7 @@ function love.load()
 
 	Add(Block(6350, -50, 550, 200))
 	Rotate(math.pi/32)
+	LightWorld:newLight(6250, 10, 255, 255, 255, 500)
 	LightWorld:newLight(6910, 10, 255, 255, 255, 500)
 	LightWorld:newLight(7990, 10, 255, 255, 255, 1000)
 
@@ -152,8 +154,7 @@ function love.load()
 	Add(Block(4950, 500-300, 50, 50))
 	Add(DamagingObject(4950, 500-50, 300, 50))
 
-	AddMoving(DamagingObject(5500, 500-25, 400, 25), 0, 0, 500-250+25/2, 500-25+25/2, 0, 50)
-	AddMoving(MovingBlock(5500, 500-25-25, 400, 25), 0, 0, 500-250+25/2-25, 500-25+25/2-25, 0, 50)
+	AddMoving(MovingBlock(5500, 500-50, 400, 50), 0, 0, 500-250+50/2-25, 500-25+50/2-25, 0, 50)
 
 	Add(Block(5900, 500-250-25, 50, 275))
 	Add(DamagingObject(5950, 500-25, 250, 25))
@@ -195,6 +196,32 @@ function love.load()
 
 
 	ThePlayer = Player(200, 450, 50, 50, 800)
+
+	local CurrentMinDistance = 10000000000000
+	local PlayerX, PlayerY = ThePlayer:center()
+	for _, Object in pairs(World) do
+		if Object.IsDamaging then
+			local OtherX, OtherY = Object:center()
+			CurrentMinDistance = math.min(CurrentMinDistance, math.sqrt(math.abs(PlayerX - OtherX)^2 + math.abs(PlayerY - OtherY)^2))
+		end
+	end
+	local ResultVolume
+	if CurrentMinDistance ~= 0 then
+		ResultVolume = 1/CurrentMinDistance * 100
+	else
+		ResultVolume = 0
+	end
+
+	CurrentState = {Brightness = 0}
+
+	AcceptInput = false
+	flux.to(CurrentState, 10, {Brightness = 1}):ease("expoin")
+	flux.to(SoundTag, 10, {volume = ResultVolume}):ease("expoin"):oncomplete(Start)
+
+end
+
+function Start()
+	AcceptInput = true
 end
 
 function Reset(checkpoint)
@@ -212,50 +239,58 @@ function love.update(dt)
 	ToPlay50:update(dt)
 	ToPlay60:update(dt)
 
+	flux.update(dt)
 
-	if love.keyboard.isDown("a") then
+	if love.keyboard.isDown("a") and AcceptInput then
 		ThePlayer:SetVelocity(-300)
-	elseif love.keyboard.isDown("d") then
+	elseif love.keyboard.isDown("d") and AcceptInput then
 		ThePlayer:SetVelocity(300)
 	else
 		ThePlayer:SetVelocity(0)
 	end
 
-	if love.keyboard.isDown("w") then
+	if love.keyboard.isDown("w") and AcceptInput then
 		ThePlayer:AddVelocity(nil, -175*dt)
 	end
 
+	local PlayerX, PlayerY = ThePlayer:center()
+	if PlayerX > 8000 and PlayerY < 0 then
+		ThePlayer:SetVelocity(0, 0)
+		ThePlayer:moveTo(8025, -25)
+	end
 	ThePlayer:update(dt)
 	UpdateMoving(dt)
 
 	LightWorld:update(dt)
 
+	if AcceptInput then
 	local CurrentMinDistance = 10000000000000
-	local PlayerX, PlayerY = ThePlayer:center()
 	for _, Object in pairs(World) do
 		if Object.IsDamaging then
 			local OtherX, OtherY = Object:center()
 			CurrentMinDistance = math.min(CurrentMinDistance, math.sqrt(math.abs(PlayerX - OtherX)^2 + math.abs(PlayerY - OtherY)^2))
 		end
 	end
-	if CurrentMinDistance ~= 0 then
-		SoundTag.volume = 1/CurrentMinDistance * 100
-	else
-		SoundTag.volume = 0
+		if CurrentMinDistance ~= 0 then
+			SoundTag.volume = 1/CurrentMinDistance * 100
+		else
+			SoundTag.volume = 0
+		end
 	end
 end
 
 function love.draw()
+	local Canvas = love.graphics.newCanvas()
+	love.graphics.setCanvas(Canvas)
 	love.graphics.push()
 	love.graphics.scale(1)
-	local PlayerX = ThePlayer:center()
+	local PlayerX, PlayerY = ThePlayer:center()
 	LightWorld.l = (400 - PlayerX)
 	LightWorld:draw(function()
 		--love.graphics.translate(400 - PlayerX, 0)
-		love.graphics.setColor(1, 1, 1)
 		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth()*10, love.graphics.getHeight())
-		
-		
+
+
 		for _, Object in pairs(World) do
 			Object:draw()
 		end
@@ -263,14 +298,24 @@ function love.draw()
 			Object.Item:draw()
 		end
 		ThePlayer:draw()
+		love.graphics.print("get out", 400, 300, math.pi/16)
+		love.graphics.print("up", 2600, 75, -math.pi/16)
+		love.graphics.print("the light", 4000, 300, math.pi/32*3)
+		love.graphics.print("matrix", 6100, 300, -math.pi/8)
 	end)
 	love.graphics.pop()
-	if ThePlayer:center() > 8000 then
+	if PlayerX > 8000 and PlayerY < 0 then
 		love.graphics.printf("You Win", 200, 300, 400, "center")
 	end
+	love.graphics.setCanvas()
+	love.graphics.setColor(CurrentState.Brightness, CurrentState.Brightness, CurrentState.Brightness)
+	love.graphics.draw(Canvas)
 end
 
 function love.keypressed(k)
+	if not AcceptInput then
+		return
+	end
 	if k == "space" then
 		if(SoundInstance:isStopped()) then
 			ToPlay50:resume()
